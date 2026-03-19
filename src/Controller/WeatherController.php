@@ -7,11 +7,15 @@ use Laminas\View\Model\ViewModel;
 
 class WeatherController extends AbstractActionController
 {
-	private array $weather = [
-		'Today'              => 'Sunny, 18 °C',
+    // Use constructor and 'propery promotion' to declare and set default values for the $weather property
+    public function __construct(private array $weather = [
+        'Today'              => 'Sunny, 19 °C',
 		'Tomorrow'           => 'Cloudy, 12 °C',
 		'Day after tomorrow' => 'Rainy, 11 °C',
-	];
+    ])
+    {
+        // nothing implemented here
+    }
 
 	public function getWeather(): array
 	{
