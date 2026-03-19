@@ -1,0 +1,45 @@
+<?php
+/**
+ * Variables injected by WeatherController::filterAction() via ViewModel:
+ *
+ * @var string|null          $day     The requested day from the query string (e.g. 'today').
+ * @var array<string,string> $content Associative array of day => weather condition.
+ */
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Weather forecast – filter</title>
+</head>
+<body>
+
+    <h1>Filter the weather forecast</h1>
+
+    <!-- Form to let the user pick a day -->
+    <form method="get" action="">
+        <label for="day">Choose a day:</label>
+        <select name="day" id="day">
+            <option value="">-- all days --</option>
+            <option value="today"             <?php if ($day === 'today')             echo 'selected'; ?>>Today</option>
+            <option value="tomorrow"          <?php if ($day === 'tomorrow')          echo 'selected'; ?>>Tomorrow</option>
+            <option value="day after tomorrow" <?php if ($day === 'day after tomorrow') echo 'selected'; ?>>Day after tomorrow</option>
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+
+    <div id="weather">
+        <?php if (empty($content)): ?>
+            <p>No weather data found for the selected day.</p>
+        <?php else: ?>
+            <?php foreach ($content as $forecastDay => $condition): ?>
+                <p><strong><?php echo $this->escapeHtml($forecastDay); ?>:</strong> <?php echo $this->escapeHtml($condition); ?></p>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
+</body>
+</html>
+
+
+

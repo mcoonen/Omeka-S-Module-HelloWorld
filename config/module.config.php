@@ -46,11 +46,9 @@ return [
                         ],
                     ],
                     'weatherforecast' => [
-//                        'type' => Segment::class, // supports optional :action segment
-                        'type' => Literal::class, // exact match of URI path
+                        'type' => Segment::class, // supports optional :action segment
                         'options' => [
-//                            'route' => '/weather[/:action]', // URI path
-                            'route' => '/weather', // URI path
+                            'route' => '/weather[/:action]', // URI path; e.g. /weather or /weather/filter
                             'defaults' => [
                                 '__NAMESPACE__' => 'HelloWorld\Controller',
                                 'controller' => Controller\WeatherController::class, // unique name
