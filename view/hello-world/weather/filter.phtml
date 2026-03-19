@@ -21,9 +21,9 @@
         <label for="day">Choose a day:</label>
         <select name="day" id="day">
             <option value="">-- all days --</option>
-            <option value="today"             <?php if ($day === 'today')             echo 'selected'; ?>>Today</option>
-            <option value="tomorrow"          <?php if ($day === 'tomorrow')          echo 'selected'; ?>>Tomorrow</option>
-            <option value="day after tomorrow" <?php if ($day === 'day after tomorrow') echo 'selected'; ?>>Day after tomorrow</option>
+            <option value="Today"             <?php if ($day === 'Today')             echo 'selected'; ?>>Today</option>
+            <option value="Tomorrow"          <?php if ($day === 'Tomorrow')          echo 'selected'; ?>>Tomorrow</option>
+            <option value="Day after tomorrow" <?php if ($day === 'Day after tomorrow') echo 'selected'; ?>>Day after tomorrow</option>
         </select>
         <button type="submit">Filter</button>
     </form>
