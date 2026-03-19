@@ -1,0 +1,19 @@
+
+<?php
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Weather forecast</title>
+</head>
+<body>
+
+    <h1>Here's your weather forecast</h1>
+    <div id="weather">
+        <?php foreach ($content as $day => $condition) { echo "<strong>$day:</strong> $condition <br>"; }?>
+    </div>
+</body>
+</html>

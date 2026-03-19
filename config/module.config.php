@@ -45,6 +45,19 @@ return [
                             ],
                         ],
                     ],
+                    'weatherforecast' => [
+//                        'type' => Segment::class, // supports optional :action segment
+                        'type' => Literal::class, // exact match of URI path
+                        'options' => [
+//                            'route' => '/weather[/:action]', // URI path
+                            'route' => '/weather', // URI path
+                            'defaults' => [
+                                '__NAMESPACE__' => 'HelloWorld\Controller',
+                                'controller' => Controller\WeatherController::class, // unique name
+                                'action'     => 'index',
+                            ],
+                        ],
+                    ],
                 ],
             ],
         ],
@@ -53,8 +66,9 @@ return [
     'controllers' => [
         // Tell the application how to instantiate our controller class
         'factories' => [
-            // Add the HelloController class to the array of invokable controllers. 
+            // Add all declared Controller classes (e.g. HelloController, WeatherController, etc.)  to the array of invokable controllers.
             Controller\HelloController::class => InvokableFactory::class,
+            Controller\WeatherController::class => InvokableFactory::class,
         ],
     ],
 
