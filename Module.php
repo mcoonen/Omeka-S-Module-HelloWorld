@@ -21,10 +21,17 @@ class Module extends AbstractModule
      */
     public function getConfigForm(PhpRenderer $renderer)
     {
-        return '
-        <label for="name">Enter a name:</label>
-        <input name="foo">
-        ';
+        // Get the existing value for the fields from the 'setting' database table
+        $settings = $this->getServiceLocator()->get('Omeka\Settings');
+        $name = $settings->get('helloworld_name');
+
+        # Return a HTML string with form fields
+        return sprintf(
+            '<label for="name">Enter a name:</label>
+            <input name="my-form-field-name-joepie" value="%s" />',
+            htmlspecialchars((string)$name, ENT_QUOTES, 'UTF-8')
+        );
+
     }
 
     /**
@@ -36,9 +43,16 @@ class Module extends AbstractModule
 
     public function handleConfigForm(AbstractController $controller)
     {
+        // Get the field value from the HTTP POST
         $request = $controller->getRequest();
-        $foo = $request->getPost('foo', '');
-        $controller->messenger()->addSuccess("Name entered: " . htmlspecialchars($foo));
+        $name = $request->getPost('my-form-field-name-joepie', '');
+
+        // Write the value to the Omeka 'setting' database table
+        $settings = $this->getServiceLocator()->get('Omeka\Settings');
+        $settings->set('helloworld_name', htmlspecialchars($name));
+
+        # Add a message to the Laminas messenger
+        $controller->messenger()->addSuccess("Name entered: " . htmlspecialchars($name));
         return true;
     }
 
