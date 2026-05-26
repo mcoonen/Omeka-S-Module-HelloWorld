@@ -18,6 +18,16 @@ class HelloController extends AbstractActionController
         return new ViewModel(['name' => $name]);
     }
 
+    public function greetAdminAction()
+    {
+        // Get the name configured in the module settings.
+        // Note: The base class is 'AbstractActionController' which does not implement `getServiceLocator()`
+        // so we have to use the `getServiceManager()` to return a `ServiceLocatorInterface`
+        $settings = $this->getEvent()->getApplication()->getServiceManager()->get('Omeka\Settings');
+        $name = $settings->get('helloworld_name', 'Placeholder');
+        return new ViewModel(['nameFromSettings' => $name]);
+    }
+
     public function indexAction()
     {
         // Get "message" from the query parameters.
