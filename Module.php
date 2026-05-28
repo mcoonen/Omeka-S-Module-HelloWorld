@@ -2,12 +2,12 @@
 
 namespace HelloWorld;
 
+use HelloWorld\Form\SiteSettingsFieldset;
 use Omeka\Module\AbstractModule;
 use Laminas\Mvc\Controller\AbstractController;
 use Laminas\View\Renderer\PhpRenderer;
 use Laminas\EventManager\SharedEventManagerInterface;
 use Laminas\EventManager\Event;
-use Laminas\Form\Element;
 
 class Module extends AbstractModule
 {
@@ -27,7 +27,6 @@ class Module extends AbstractModule
      */
     public function getConfigForm(PhpRenderer $renderer)
     {
-        // Service: 'Omeka\Settings'  →  table: `setting`
         $settings = $this->getServiceLocator()->get('Omeka\Settings');
         $name     = $settings->get('helloworld_name', '');
 
@@ -56,33 +55,34 @@ class Module extends AbstractModule
     // Stored in the `site_setting` table. Each site has its own value.
     // Configured at: Admin → Sites → [Your Site] → Settings
     //
-    // How it works:
-    //   1. attachListeners()               – registers hooks on SiteSettingsForm
-    //   2. addSiteSettingsFormElements()   – adds fields when the page renders
-    //   3. addSiteSettingsInputFilters()   – adds validation on form submit
+    // Pattern (inspired by Daniel-KM/BlockPlus):
+    //   1. SiteSettingsFieldset (src/Form/SiteSettingsFieldset.php)
+    //      – declares all form elements and element_groups; no DB access.
+    //   2. attachListeners()
+    //      – registers event hooks on SiteSettingsForm.
+    //   3. addSiteSettingsFormElements()  [form.add_elements event]
+    //      – creates the fieldset via FormElementManager (which calls init()),
+    //        merges element_groups into the parent form,
+    //        reads current values from 'Omeka\Settings\Site',
+    //        adds each element to the form ROOT (required for the core save loop),
+    //        and calls populateValues() to fill them in.
+    //   4. addSiteSettingsInputFilters()  [form.add_input_filters event]
+    //      – attaches validation/filter rules at the form root level.
     //
-    // Saving is handled AUTOMATICALLY by the Omeka S core SiteAdmin controller,
-    // which iterates the flat form data and calls:
+    // Saving is handled AUTOMATICALLY by the Omeka S core SiteAdmin controller:
     //   foreach ($formData as $key => $value) { $siteSettings->set($key, $value); }
-    //
-    // IMPORTANT: elements must be added directly to the FORM ROOT (not inside
-    // a Fieldset), so the core save loop sees them as flat key→value pairs.
     // -------------------------------------------------------------------------
 
-    /**
-     * Register event listeners. Called automatically by AbstractModule at boot.
-     */
     public function attachListeners(SharedEventManagerInterface $sharedEventManager): void
     {
         $sharedEventManager->attach(
             \Omeka\Form\SiteSettingsForm::class,
-            'form.add_elements',       // fires when Omeka S renders the settings page
+            'form.add_elements',
             [$this, 'addSiteSettingsFormElements']
         );
-
         $sharedEventManager->attach(
             \Omeka\Form\SiteSettingsForm::class,
-            'form.add_input_filters',  // fires before validation on form submit
+            'form.add_input_filters',
             [$this, 'addSiteSettingsInputFilters']
         );
     }
@@ -90,56 +90,55 @@ class Module extends AbstractModule
     /**
      * Add Hello World fields to the Site Settings form.
      *
-     * The correct service name is 'Omeka\Settings\Site' (NOT SiteSettings).
-     * The current site is already set on this service by the admin router, so
-     * ->get() / ->set() automatically target the site being edited.
+     * Steps:
+     *  1. Get the fieldset from FormElementManager (triggers init() automatically).
+     *  2. Merge our element_groups into the parent form so they appear as tabs/sections.
+     *  3. Read the currently stored values from 'Omeka\Settings\Site'.
+     *  4. Add each element to the form ROOT (not inside the fieldset wrapper),
+     *     because the Omeka S core save loop iterates flat root-level data:
+     *       foreach ($formData as $key => $value) { $siteSettings->set($key, $value); }
+     *  5. Call populateValues() to set the current values on those elements.
      */
     public function addSiteSettingsFormElements(Event $event): void
     {
+        $services           = $this->getServiceLocator();
+        $formElementManager = $services->get('FormElementManager');
         // Service: 'Omeka\Settings\Site'  →  table: `site_setting`
-        $siteSettings = $this->getServiceLocator()->get('Omeka\Settings\Site');
+        $siteSettings       = $services->get('Omeka\Settings\Site');
 
         /** @var \Omeka\Form\SiteSettingsForm $form */
         $form = $event->getTarget();
 
-        // --- Field 1: text input -----------------------------------------------
-        // Add the element directly to the form root (NOT inside a Fieldset).
-        // The 'name' here becomes the key used by the core save loop.
-        $form->add([
-            'name'    => 'helloworld_site_greeting',
-            'type'    => Element\Text::class,
-            'options' => [
-                'label' => 'Hello World: site greeting', // @translate
-                'info'  => 'Greeting shown to visitors on this specific site.',
-            ],
-            'attributes' => [
-                'id'    => 'helloworld_site_greeting',
-                // Pre-populate with the currently saved value (default: 'Hello').
-                'value' => $siteSettings->get('helloworld_site_greeting', 'Hello'),
-            ],
-        ]);
+        // 1. Create fieldset via FormElementManager so init() is called automatically.
+        /** @var SiteSettingsFieldset $fieldset */
+        $fieldset = $formElementManager->get(SiteSettingsFieldset::class);
 
-        // --- Field 2: checkbox -------------------------------------------------
-        $form->add([
-            'name'    => 'helloworld_site_show_weather',
-            'type'    => Element\Checkbox::class,
-            'options' => [
-                'label'              => 'Hello World: show weather widget', // @translate
-                'info'               => 'Display the weather widget on this site.',
-                'use_hidden_element' => true,  // ensures a value posts even when unchecked
-                'checked_value'      => '1',
-                'unchecked_value'    => '0',
-            ],
-            'attributes' => [
-                'id'    => 'helloworld_site_show_weather',
-                'value' => $siteSettings->get('helloworld_site_show_weather', '0'),
-            ],
-        ]);
+        // 2. Merge our element groups into the form so they render as sections/tabs.
+        $fieldsetGroups = $fieldset->getOption('element_groups') ?: [];
+        $form->setOption('element_groups', array_merge(
+            $form->getOption('element_groups') ?: [],
+            $fieldsetGroups
+        ));
+
+        // 3. Read all current values from the site_setting table.
+        $data = [
+            'helloworld_site_greeting'     => $siteSettings->get('helloworld_site_greeting', 'Hello'),
+            'helloworld_site_show_weather' => $siteSettings->get('helloworld_site_show_weather', '0'),
+        ];
+
+        // 4. Add each element from the fieldset directly to the form root.
+        //    Using the fieldset as a structural/organisational helper only.
+        foreach ($fieldset->getElements() as $element) {
+            $form->add($element);
+        }
+
+        // 5. Populate the form elements with the stored values.
+        $form->populateValues($data);
     }
 
     /**
-     * Add input filters / validation for the site settings fields.
-     * Filters are added to the FORM-LEVEL input filter (not a fieldset).
+     * Add input filters / validation rules at the form root level.
+     * The 'inputFilter' param is the form's own InputFilter instance.
      */
     public function addSiteSettingsInputFilters(Event $event): void
     {

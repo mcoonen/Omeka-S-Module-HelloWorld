@@ -17,6 +17,14 @@ use Laminas\Router\Http\Segment;
 use Laminas\ServiceManager\Factory\InvokableFactory;
 
 return [
+    // Register form classes so Laminas can instantiate them via FormElementManager.
+    // This ensures init() is called automatically and allows future injection of services.
+    'form_elements' => [
+        'invokables' => [
+            \HelloWorld\Form\SiteSettingsFieldset::class => \HelloWorld\Form\SiteSettingsFieldset::class,
+        ],
+    ],
+
     'router' => [
         'routes' => [
             'site' => [
