@@ -4,25 +4,18 @@ namespace HelloWorld\Controller;
 use Laminas\Mvc\Controller\AbstractActionController;
 use Laminas\View\Model\ViewModel;
 
-// Create an action controller.
 class HelloController extends AbstractActionController
 {
-    // Define an action "world".
     public function greetAction()
     {
-        // Get "message" from the query parameters.
-        // In production code, it's a good idea to sanitize user input.
         $name = $this->params()->fromQuery('name', 'Stranger');
-
-        // Pass variables to the view.
         return new ViewModel(['name' => $name]);
     }
 
     public function greetAdminAction()
     {
-        // Get the name configured in the module settings.
-        // Note: The base class is 'AbstractActionController' which does not implement `getServiceLocator()`
-        // so we have to use the `getServiceManager()` to return a `ServiceLocatorInterface`
+        // Read a GLOBAL setting (same value for every Omeka S site).
+        // Service: 'Omeka\Settings'  →  table: `setting`
         $settings = $this->getEvent()->getApplication()->getServiceManager()->get('Omeka\Settings');
         $name = $settings->get('helloworld_name', 'Placeholder');
         return new ViewModel(['nameFromSettings' => $name]);
@@ -30,10 +23,26 @@ class HelloController extends AbstractActionController
 
     public function indexAction()
     {
-        // Get "message" from the query parameters.
-        // In production code, it's a good idea to sanitize user input.
-        $message = $this->params()->fromQuery('message', 'index');
-        // Pass variables to the view.
-        return new ViewModel(['name' => 'Stranger']);
+        $sm = $this->getEvent()->getApplication()->getServiceManager();
+
+        // --- Reading GLOBAL settings -------------------------------------------
+        // 'Omeka\Settings' is shared across all sites.
+        $globalSettings = $sm->get('Omeka\Settings');
+        $globalName     = $globalSettings->get('helloworld_name', 'World');
+
+        // --- Reading SITE settings ---------------------------------------------
+        // 'Omeka\Settings\Site' is scoped to the *current* site.
+        // Omeka S automatically targets the correct site when a public-facing
+        // site route is active (i.e. the visitor is browsing a site).
+        $siteSettings = $sm->get('Omeka\Settings\Site');
+        $siteGreeting = $siteSettings->get('helloworld_site_greeting', 'Hello');
+        $showWeather  = (bool) $siteSettings->get('helloworld_site_show_weather', '0');
+
+        // Pass both to the view so you can see the difference.
+        return new ViewModel([
+            'globalName'   => $globalName,
+            'siteGreeting' => $siteGreeting,
+            'showWeather'  => $showWeather,
+        ]);
     }
 }
