@@ -9,16 +9,39 @@ class HelloController extends AbstractActionController
     public function greetAction()
     {
         $name = $this->params()->fromQuery('name', 'Stranger');
-        return new ViewModel(['name' => $name]);
+
+        // Read a SITE setting
+        // 'Omeka\Settings\Site' is scoped to the *current* site.
+        // Service: 'Omeka\Settings\Site'  →  table: `site_setting`
+        $sm = $this->getEvent()->getApplication()->getServiceManager();
+        $siteSettings = $sm->get('Omeka\Settings\Site');
+        $greeting = $siteSettings->get('helloworld_site_greeting', 'Bon giorno');
+
+        return new ViewModel([
+            'name' => $name,
+            'greetingFromSiteSettings' => $greeting
+        ]);
     }
 
     public function greetAdminAction()
     {
+        $sm = $this->getEvent()->getApplication()->getServiceManager();
+
         // Read a GLOBAL setting (same value for every Omeka S site).
         // Service: 'Omeka\Settings'  →  table: `setting`
-        $settings = $this->getEvent()->getApplication()->getServiceManager()->get('Omeka\Settings');
+        $settings = $sm->get('Omeka\Settings');
         $name = $settings->get('helloworld_name', 'Placeholder');
-        return new ViewModel(['nameFromSettings' => $name]);
+
+        // Read a SITE setting
+        // 'Omeka\Settings\Site' is scoped to the *current* site.
+        // Service: 'Omeka\Settings\Site'  →  table: `site_setting`
+        $siteSettings = $sm->get('Omeka\Settings\Site');
+        $greeting = $siteSettings->get('helloworld_site_greeting', 'Bon giorno');
+
+        return new ViewModel([
+            'nameFromSettings' => $name,
+            'greetingFromSiteSettings' => $greeting
+        ]);
     }
 
     public function indexAction()
